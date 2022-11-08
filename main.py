@@ -3,9 +3,13 @@ from os import listdir
 from os.path import isfile, join
 import sys
 import time
+import msvcrt as m
 
 CONF_DIR = "./conf/"
 READ_TIMEOUT = 8
+
+def wait():
+    m.getch()
 
 def getNameOfFiles(mypath):
   onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
@@ -52,10 +56,14 @@ def send_command(console, cmd='', mode='none'):
 def sendCommands(console, commands):
     for command in commands:
         print(send_command(console, cmd=command))
+    logout(console)
 
 def main(com):
     conf = getNameOfFiles(CONF_DIR)
     for c in conf:
+        print("Conectese a " + c.split(".")[0] + " y presione cualquier tecla para continuar ...")
+        wait()
+
         file = open(CONF_DIR + c, encoding='UTF-8')
         commands = []
         for line in file:
