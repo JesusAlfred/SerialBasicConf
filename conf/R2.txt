@@ -1,4 +1,4 @@
 enable
 configure terminal
-hostname R1
+hostname R2
 end

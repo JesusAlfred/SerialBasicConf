@@ -18,12 +18,12 @@ def getNameOfFiles(mypath):
 def read_serial(console):
     data_bytes = console.inWaiting()
     if data_bytes:
-        return console.read(data_bytes)
+        return str(console.read(data_bytes), 'utf-8')
     else:
         return ""
 
 def check_logged_in(console):
-    console.write("\r\n\r\n")
+    console.write(bytes("\r\n\r\n", 'utf-8'))
     time.sleep(1)
     prompt = read_serial(console)
     if '>' in prompt or '#' in prompt:
@@ -34,26 +34,27 @@ def check_logged_in(console):
 def logout(console):
     print("Saliendo")
     while check_logged_in(console):
-        console.write("exit\r\n")
+        console.write(bytes("exit\r\n",'utf-8'))
         time.sleep(.5)
 
     print("Ha salido")
 
 def send_command(console, cmd='', mode='none'):
     if mode != 'none':
-        console.write("end\r\n")
+        console.write(bytes("end\r\n"), 'utf-8')
         read_serial(console)
-        console.write('enable\r\n')
+        console.write(bytes('enable\r\n', 'utf-8'))
         read_serial(console)
         if mode == 'conf':
-            console.write('configure terminal\r\n')
+            console.write(bytes('configure terminal\r\n','utf-8'))
             read_serial(console)
 
-    console.write(cmd + '\r\n')
+    console.write(bytes(cmd + '\r\n', 'utf-8'))
     time.sleep(1)
     return read_serial(console)
 
 def sendCommands(console, commands):
+    check_logged_in(console)
     for command in commands:
         print(send_command(console, cmd=command))
     logout(console)
@@ -62,7 +63,7 @@ def main(com):
     conf = getNameOfFiles(CONF_DIR)
     for c in conf:
         print("Conectese a " + c.split(".")[0] + " y presione cualquier tecla para continuar ...")
-        wait()
+        wait() 
 
         file = open(CONF_DIR + c, encoding='UTF-8')
         commands = []
@@ -83,7 +84,9 @@ def main(com):
                     timeout=READ_TIMEOUT
                 )
                 sendCommands(console, commands)
-            except:
+                console.close()
+            except Exception as e:
+                print(e)
                 print("Error en " + com + " desea reintentar (y/n) ", end="")
                 if input() != 'y':
                     retry = False
