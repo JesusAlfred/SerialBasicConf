@@ -8,6 +8,12 @@ import msvcrt as m
 CONF_DIR = "./conf/"
 READ_TIMEOUT = 8
 
+
+def isReady(console):
+    console.write(bytes("\r\n", 'utf-8'))
+    prompt = read_serial(console)
+    while not(prompt[-1] == '>' or prompt[-1] == '#'):
+        prompt = read_serial(console)
 def wait():
     m.getch()
 
@@ -50,14 +56,26 @@ def send_command(console, cmd='', mode='none'):
             read_serial(console)
 
     console.write(bytes(cmd + '\r\n', 'utf-8'))
-    time.sleep(1)
     return read_serial(console)
 
 def sendCommands(console, commands):
-    check_logged_in(console)
     for command in commands:
-        print(send_command(console, cmd=command))
+        if command[0] == '!':
+            print(command, "omitido")
+        elif command == "":
+            pass
+        else:
+            print(send_command(console, cmd=command))
+            isReady(console)
     logout(console)
+
+def check_initial_dialog(console):
+    print(console)
+    console.write(bytes("\r\n\r\n", 'utf-8'))
+    time.sleep(1)
+    prompt = read_serial(console)
+    if 'yes' in prompt or 'no' in prompt:
+        send_command(console, 'no\n')
 
 def main(com):
     conf = getNameOfFiles(CONF_DIR)
@@ -83,10 +101,15 @@ def main(com):
                     bytesize=8,
                     timeout=READ_TIMEOUT
                 )
+                check_initial_dialog(console)
+
+                while not check_logged_in(console):
+                    pass
                 sendCommands(console, commands)
                 console.close()
             except Exception as e:
                 print(e)
+                console.close()
                 print("Error en " + com + " desea reintentar (y/n) ", end="")
                 if input() != 'y':
                     retry = False
