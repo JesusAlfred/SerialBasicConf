@@ -4,8 +4,10 @@ from os.path import isfile, join
 import sys
 import time
 import msvcrt as m
+import os
 
 CONF_DIR = "./conf/"
+LOG_PAD = './log'
 READ_TIMEOUT = 8
 
 
@@ -58,15 +60,19 @@ def send_command(console, cmd='', mode='none'):
     console.write(bytes(cmd + '\r\n', 'utf-8'))
     return read_serial(console)
 
-def sendCommands(console, commands):
+def sendCommands(console, commands, name):
+    f = open(LOG_PAD + "/" + name + ".log")
     for command in commands:
         if command[0] == '!':
-            print(command, "omitido")
+            output = " omitido ------> " + command
         elif command == "":
             pass
         else:
-            print(send_command(console, cmd=command))
             isReady(console)
+            output = send_command(console, cmd=command)
+        f.write(output)
+    f.close()
+            
     logout(console)
 
 def check_initial_dialog(console):
@@ -79,6 +85,8 @@ def check_initial_dialog(console):
 
 def main(com):
     conf = getNameOfFiles(CONF_DIR)
+    if not os.path.exists(LOG_PAD):
+        os.makedirs(LOG_PAD)
     for c in conf:
         print("Conectese a " + c.split(".")[0] + " y presione cualquier tecla para continuar ...")
         wait() 
@@ -105,7 +113,7 @@ def main(com):
 
                 while not check_logged_in(console):
                     pass
-                sendCommands(console, commands)
+                sendCommands(console, commands, c.split(".")[0])
                 console.close()
             except Exception as e:
                 print(e)
