@@ -121,6 +121,9 @@ def main(com):
                 print("Error en " + com + " desea reintentar (y/n) ", end="")
                 if input() != 'y':
                     retry = False
+                    f = open(LOG_PAD + "/" + c.split(".")[0] + ".log")
+                    f.write("error")
+                    f.close()
                 else:
                     retry = True
 
