@@ -14,7 +14,7 @@ READ_TIMEOUT = 8
 def isReady(console):
     console.write(bytes("\r\n", 'utf-8'))
     prompt = read_serial(console)
-    while not(prompt[-1] == '>' or prompt[-1] == '#'):
+    while not('>' in prompt or '#' in prompt):
         prompt = read_serial(console)
 def wait():
     m.getch()
@@ -23,16 +23,17 @@ def getNameOfFiles(mypath):
   onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
   return onlyfiles
 
-def read_serial(console):
-    data_bytes = console.inWaiting()
-    if data_bytes:
-        return str(console.read(data_bytes), 'utf-8')
+def read_serial(console, untilCR = True):
+    if untilCR:
+        output = str(console.read_until(), 'utf-8')
     else:
-        return ""
+        output = str(console.read(999), 'utf-8')
+    return output
+  
+
 
 def check_logged_in(console):
-    console.write(bytes("\r\n\r\n", 'utf-8'))
-    time.sleep(1)
+    console.write(bytes("\r\n", 'utf-8'))
     prompt = read_serial(console)
     if '>' in prompt or '#' in prompt:
         return True
@@ -43,45 +44,40 @@ def logout(console):
     print("Saliendo")
     while check_logged_in(console):
         console.write(bytes("exit\r\n",'utf-8'))
-        time.sleep(.5)
 
     print("Ha salido")
 
-def send_command(console, cmd='', mode='none'):
-    if mode != 'none':
-        console.write(bytes("end\r\n"), 'utf-8')
-        read_serial(console)
-        console.write(bytes('enable\r\n', 'utf-8'))
-        read_serial(console)
-        if mode == 'conf':
-            console.write(bytes('configure terminal\r\n','utf-8'))
-            read_serial(console)
+def send_command(console, cmd='', readUntilCR = True):
+    #cmd = cmd.replace('\n', "")
+    cmd2 = cmd.replace('\n', "")
+    cmd2 = cmd2.replace('\r', "")
 
-    console.write(bytes(cmd + '\r\n', 'utf-8'))
-    return read_serial(console)
+    console.write(bytes(cmd2 + '\r\n', 'utf-8'))
+    return read_serial(console, untilCR=readUntilCR)
 
 def sendCommands(console, commands, name):
-    f = open(LOG_PAD + "/" + name + ".log")
+    f = open(LOG_PAD + "/" + name + ".log", 'w')
     for command in commands:
         if command[0] == '!':
             output = " omitido ------> " + command
-        elif command == "":
+        elif command == "\n":
             pass
         else:
-            isReady(console)
             output = send_command(console, cmd=command)
+            print(output)
+            #isReady(console)
+        print(output)
         f.write(output)
     f.close()
             
     logout(console)
 
 def check_initial_dialog(console):
-    print(console)
-    console.write(bytes("\r\n\r\n", 'utf-8'))
     time.sleep(1)
-    prompt = read_serial(console)
+    prompt = send_command(console, "", False)
+    print(prompt)
     if 'yes' in prompt or 'no' in prompt:
-        send_command(console, 'no\n')
+        send_command(console, 'no', False)
 
 def main(com):
     conf = getNameOfFiles(CONF_DIR)
@@ -112,16 +108,20 @@ def main(com):
                 check_initial_dialog(console)
 
                 while not check_logged_in(console):
+                    time.sleep(0.2)
                     pass
                 sendCommands(console, commands, c.split(".")[0])
                 console.close()
             except Exception as e:
                 print(e)
-                console.close()
+                try:
+                    console.close()
+                except:
+                    pass
                 print("Error en " + com + " desea reintentar (y/n) ", end="")
                 if input() != 'y':
                     retry = False
-                    f = open(LOG_PAD + "/" + c.split(".")[0] + ".log")
+                    f = open(LOG_PAD + "/" + c.split(".")[0] + ".log", 'w')
                     f.write("error")
                     f.close()
                 else:
